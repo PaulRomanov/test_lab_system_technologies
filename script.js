@@ -64,6 +64,31 @@ function deserialize(serializedString) {
     return numbers;
 }
 
+/**
+ * Вычисляет коэффициент сжатия для данного набора чисел.
+ * @param {number[]} numbers - Исходный массив чисел.
+ * @returns {object} - Объект с данными теста.
+ */
+function getCompressionRatio(numbers) {
+    const sortedNumbers = [...new Set(numbers)].sort((a, b) => a - b);
+    const simpleString = sortedNumbers.join(',');
+    const simpleLength = simpleString.length;
+
+    const compressedString = serialize(sortedNumbers);
+    const compressedLength = compressedString.length;
+
+    const ratio = compressedLength > 0 ? simpleLength / compressedLength : 0;
+    
+    return {
+        numbers: sortedNumbers,
+        simpleString: simpleString,
+        simpleLength: simpleLength,
+        compressedString: compressedString,
+        compressedLength: compressedLength,
+        ratio: ratio
+    };
+}
+
 
 // Логика для UI и тестов
 
@@ -102,39 +127,59 @@ function generateRandomNumbers(count) {
     while (numbers.size < count) {
         numbers.add(Math.floor(Math.random() * 300) + 1);
     }
-    return [...numbers];
+    const result = [...numbers]; 
+    return result; 
 }
 
 function runAllTests() {
     const tests = [
-        { name: "Простейший короткий", numbers: [1, 300, 237, 188] },
-        { name: "Случайные 50 чисел", numbers: generateRandomNumbers(50) },
-        { name: "Случайные 100 чисел", numbers: generateRandomNumbers(100) },
-        { name: "Случайные 500 чисел", numbers: generateRandomNumbers(500) },
-        { name: "Случайные 1000 чисел", numbers: generateRandomNumbers(1000) },
-        { name: "Граничные: все числа 1 знака", numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
-        { name: "Граничные: все числа из 2-х знаков", numbers: Array.from({length: 90}, (_, i) => 10 + i) },
-        { name: "Граничные: все числа из 3-х знаков", numbers: Array.from({length: 201}, (_, i) => 100 + i) },
-        { name: "Каждого числа по 3 (900 чисел)", numbers: Array.from({length: 300}, (_, i) => [i+1, i+1, i+1]).flat() }
+        { name: "Простейший короткий", getNumbers: () => [1, 300, 237, 188] },
+        { name: "Случайные 50 чисел", getNumbers: () => generateRandomNumbers(50) },
+        { name: "Случайные 100 чисел", getNumbers: () => generateRandomNumbers(100) },
+        { name: "Случайные 500 чисел", getNumbers: () => generateRandomNumbers(500) },
+        { name: "Случайные 1000 чисел", getNumbers: () => generateRandomNumbers(1000) },
+        { name: "Граничные: все числа 1 знака", getNumbers: () => [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+        { name: "Граничные: все числа из 2-х знаков", getNumbers: () => Array.from({length: 90}, (_, i) => 10 + i) },
+        { name: "Граничные: все числа из 3-х знаков", getNumbers: () => Array.from({length: 201}, (_, i) => 100 + i) },
+        { name: "Каждого числа по 3 (900 чисел)", getNumbers: () => Array.from({length: 300}, (_, i) => [i+1, i+1, i+1]).flat() }
     ];
 
     const resultsDiv = document.getElementById('testsResults');
     resultsDiv.innerHTML = '';
 
-    tests.forEach(test => {
-        const result = getCompressionRatio(test.numbers);
-        const testDiv = document.createElement('div');
-        testDiv.innerHTML = `
-            <h3>${test.name}</h3>
-            <p>Исходный массив: <code>[${test.numbers.join(',')}]</code></p>
-            <p>Простая сериализация: <code>${result.simpleString}</code> (Длина: ${result.simpleLength})</p>
-            <p>Сжатая строка: <code>${Array.from(result.compressedString).map(char => {
-                const charCode = char.charCodeAt(0);
-                return charCode >= 32 && charCode <= 126 ? char : `\\x${charCode.toString(16).padStart(2, '0')}`;
-            }).join('')}</code> (Длина: ${result.compressedLength})</p>
-            <p>Коэффициент сжатия: <b>${result.ratio.toFixed(2)}</b></p>
-            <hr>
-        `;
-        resultsDiv.appendChild(testDiv);
-    });
+    const runNextTest = (index) => {
+        if (index >= tests.length) {
+            console.log('Все тесты завершены!');
+            return;
+        }
+
+        const test = tests[index];
+        console.log(`--- Запуск теста: ${index + 1} - ${test.name} ---`);
+        
+        try {
+            const numbersToTest = test.getNumbers();
+            
+            const result = getCompressionRatio(numbersToTest);
+            const testDiv = document.createElement('div');
+            testDiv.innerHTML = `
+                <h3>${test.name}</h3>
+                <p>Исходный массив: <code>[${numbersToTest.join(',')}]</code></p>
+                <p>Простая сериализация: <code>${result.simpleString}</code> (Длина: ${result.simpleLength})</p>
+                <p>Сжатая строка: <code>${Array.from(result.compressedString).map(char => {
+                    const charCode = char.charCodeAt(0);
+                    return charCode >= 32 && charCode <= 126 ? char : `\\x${charCode.toString(16).padStart(2, '0')}`;
+                }).join('')}</code> (Длина: ${result.compressedLength})</p>
+                <p>Коэффициент сжатия: <b>${result.ratio.toFixed(2)}</b></p>
+                <hr>
+            `;
+            resultsDiv.appendChild(testDiv);
+            
+            setTimeout(() => runNextTest(index + 1), 0);
+            
+        } catch (e) {
+            console.error(`Ошибка в тесте "${test.name}":`, e);
+        }
+    };
+
+    runNextTest(0);
 }
