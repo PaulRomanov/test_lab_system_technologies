@@ -1,3 +1,5 @@
+## Demo: https://test-lab-system-technologies.vercel.app/
+
 # Тестовое задание: Компактная сериализация
 
 ## Описание задачи
